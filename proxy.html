@@ -30,22 +30,18 @@
     { name: "Germany", url: "https://deepclick.u.cname.dev" }
   ];
 
-  const HEALTH = "/test.txt"; // your health file
-  const TIMEOUT = 3000; // 3 seconds per fetch
+  const HEALTH = "/test.txt";
+  const TIMEOUT = 3000;
   const statusEl = document.getElementById("status");
 
-  // Get path and query from current URL
-  let path = window.location.pathname;
-  const launcherFile = '/DeepProxy/proxy'; // name of this launcher page
-  if (path.endsWith(launcherFile)) {
-      path = '/';
-  } else if (path.includes(launcherFile)) {
-      path = path.split(launcherFile)[1] || '/';
-  }
+  // Parse URL query
+  const params = new URLSearchParams(window.location.search);
+  let path = params.get("path") || "/";
+  
+  // Keep all other query parameters except "path"
+  params.delete("path");
+  const query = params.toString() ? `?${params.toString()}` : "";
 
-  const query = window.location.search;
-
-  // Function to check a proxy
   function checkProxy(proxy) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(proxy), TIMEOUT);
@@ -59,7 +55,6 @@
     });
   }
 
-  // Run all checks in parallel
   const checks = proxies.map(proxy =>
     checkProxy(proxy).then(p => p).catch(() => null)
   );
@@ -68,7 +63,6 @@
     const result = await Promise.any(checks);
     if (result) {
       statusEl.innerText = "Connected via: " + result.name;
-      // Redirect to first working proxy with correct path + query
       window.location.replace(result.url + path + query);
     } else {
       statusEl.innerText = "All proxies unreachable.";
