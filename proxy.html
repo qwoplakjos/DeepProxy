@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connecting…</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 50px;
+    background: #f4f4f4;
+    color: #333;
+  }
+  #status {
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+<h1>Connecting to the fastest server…</h1>
+<div id="status">Checking available proxies…</div>
+
+<script>
+(async () => {
+  const proxies = [
+    { name: "Main CF", url: "https://deepclicker.cc" },
+    { name: "GCore CDN", url: "https://gcore.deepclicker.cc" },
+    { name: "Adaptive proxy", url: "https://2.deepclicker.cc" },
+    { name: "Germany", url: "https://deepclick.u.cname.dev" }
+  ];
+
+  const HEALTH = "/test.txt"; // your health file
+  const TIMEOUT = 3000; // 3 seconds per fetch
+  const statusEl = document.getElementById("status");
+
+  // Get query params from current URL
+  const query = window.location.search;
+
+  function checkProxy(proxy) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(proxy), TIMEOUT);
+      fetch(proxy.url + HEALTH, { cache: "no-store" })
+        .then(resp => {
+          clearTimeout(timer);
+          if (resp.ok) resolve(proxy);
+          else reject(proxy);
+        })
+        .catch(() => reject(proxy));
+    });
+  }
+
+  const checks = proxies.map(proxy =>
+    checkProxy(proxy).then(p => p).catch(() => null)
+  );
+
+  try {
+    const result = await Promise.any(checks);
+    if (result) {
+      statusEl.innerText = "Connected via: " + result.name;
+      // Redirect with original path + query params
+      window.location.replace(result.url + window.location.pathname + query);
+    } else {
+      statusEl.innerText = "All proxies unreachable.";
+    }
+  } catch {
+    statusEl.innerText = "All proxies unreachable.";
+  }
+})();
+</script>
+</body>
+</html>
