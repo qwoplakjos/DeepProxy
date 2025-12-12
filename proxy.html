@@ -31,7 +31,8 @@
   ];
 
   const HEALTH = "/test.txt";
-  const TIMEOUT = 3000;
+  const TIMEOUT = 3000; // 3 seconds per proxy check
+  const RETRY_DELAY = 1000; // retry every 3 seconds if all fail
   const statusEl = document.getElementById("status");
 
   // Parse URL query
@@ -42,6 +43,7 @@
   params.delete("path");
   const query = params.toString() ? `?${params.toString()}` : "";
 
+  // Function to check a single proxy
   function checkProxy(proxy) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(proxy), TIMEOUT);
@@ -55,21 +57,29 @@
     });
   }
 
-  const checks = proxies.map(proxy =>
-    checkProxy(proxy).then(p => p).catch(() => null)
-  );
+  // Main function to check all proxies
+  async function checkAllProxies() {
+    const checks = proxies.map(proxy =>
+      checkProxy(proxy).then(p => p).catch(() => null)
+    );
 
-  try {
-    const result = await Promise.any(checks);
-    if (result) {
-      statusEl.innerText = "Connected via: " + result.name;
-      window.location.replace(result.url + path + query);
-    } else {
-      statusEl.innerText = "All proxies unreachable.";
+    try {
+      const result = await Promise.any(checks);
+      if (result) {
+        statusEl.innerText = "Connected via: " + result.name;
+        window.location.replace(result.url + path + query);
+      } else {
+        statusEl.innerText = "All proxies unreachable, retrying...";
+        setTimeout(checkAllProxies, RETRY_DELAY);
+      }
+    } catch {
+      statusEl.innerText = "All proxies unreachable, retrying...";
+      setTimeout(checkAllProxies, RETRY_DELAY);
     }
-  } catch {
-    statusEl.innerText = "All proxies unreachable.";
   }
+
+  // Start the first check
+  checkAllProxies();
 })();
 </script>
 </body>
