@@ -3,97 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Connecting…</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 50px;
-    background: #0F0F0F;
-    color: white;
-  }
-  #status {
-    margin-top: 20px;
-  }
-</style>
+<title>Select Proxy</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<h1>Connecting to the fastest server…</h1>
-<div id="status">Checking available proxies…</div>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+<div class="w-full max-w-md text-center">
+  <h1 class="text-3xl font-bold mb-6">Choose a proxy server</h1>
+  <div id="proxy-list" class="space-y-4">
+    <!-- Proxy buttons will be added here -->
+  </div>
+  <div id="status" class="mt-6 text-gray-400">Waiting for selection...</div>
+</div>
 
 <script>
-(async () => {
-  const proxies = [
-    { name: "Adaptive proxy", url: "https://2.deepclicker.cc" },
-    { name: "Main CF", url: "https://deepclicker.cc" },
-    { name: "GCore CDN", url: "https://gcore.deepclicker.cc" },
-  ];
+const proxies = [
+  { name: "Main CF", url: "https://deepclicker.cc" },
+  { name: "Russian CDN", url: "https://4i7nii0g4i.a.trbcdn.net" },
+  { name: "Adaptive proxy", url: "https://2.deepclicker.cc" },
+  { name: "GCore CDN", url: "https://gcore.deepclicker.cc" },
+  { name: "Vercel ", url: "https://nextjs-boilerplate-ochre-delta-39.vercel.app" },
+];
 
-  const HEALTH = "/test.txt";
-  const TRY_TIMEOUT = 200; // 200 ms to prefer first
-  const FULL_TIMEOUT = 3000; // full timeout for each proxy
-  const RETRY_DELAY = 1000; // retry every 1 second if all fail
-  const statusEl = document.getElementById("status");
+const statusEl = document.getElementById("status");
+const proxyListEl = document.getElementById("proxy-list");
 
-  const params = new URLSearchParams(window.location.search);
-  let path = params.get("path") || "/";
-  params.delete("path");
-  const query = params.toString() ? `?${params.toString()}` : "";
+const params = new URLSearchParams(window.location.search);
+let path = params.get("path") || "/";
+params.delete("path");
+const query = params.toString() ? `?${params.toString()}` : "";
 
-  // Fetch with timeout
-  function fetchWithTimeout(url, timeout) {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("timeout")), timeout);
-      fetch(url, { cache: "no-store" })
-        .then(resp => {
-          clearTimeout(timer);
-          if (resp.ok) resolve(resp);
-          else reject(new Error("bad response"));
-        })
-        .catch(err => {
-          clearTimeout(timer);
-          reject(err);
-        });
-    });
-  }
+// Create buttons for each proxy
+proxies.forEach(proxy => {
+  const btn = document.createElement("button");
+  btn.innerText = proxy.name;
+  btn.className = "w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors font-medium";
+  btn.onclick = async () => {
+    statusEl.innerText = "Connecting to " + proxy.name + "...";
 
-  // Try proxies in order
-  async function tryProxies() {
-    for (let proxy of proxies) {
-      statusEl.innerText = "Trying: " + proxy.name;
+    try {
+      const res = await fetch(proxy.url + "/test.txt", { cache: "no-store" });
+      if (!res.ok) throw new Error("Server unreachable");
 
-      // Start the fast-preference fetch
-      let fastTry = fetchWithTimeout(proxy.url + HEALTH, TRY_TIMEOUT).catch(() => null);
-
-      // Start the full fetch anyway so if fastTry fails after 200ms we still have a full attempt
-      let fullTry = fetchWithTimeout(proxy.url + HEALTH, FULL_TIMEOUT).catch(() => null);
-
-      let result = await fastTry;
-
-      if (result) {
-        statusEl.innerText = "Connected via: " + proxy.name;
-        window.location.replace(proxy.url + path + query);
-        return;
-      }
-
-      // If fastTry fails, wait for fullTry (so we don’t abandon a slow but healthy server)
-      result = await fullTry;
-      if (result) {
-        statusEl.innerText = "Connected via: " + proxy.name;
-        window.location.replace(proxy.url + path + query);
-        return;
-      }
-
-      // else move to next proxy
+      statusEl.innerText = "Connected via " + proxy.name;
+      window.location.replace(proxy.url + path + query);
+    } catch (err) {
+      statusEl.innerText = "Failed to connect to " + proxy.name;
     }
-
-    // If all failed, retry after delay
-    statusEl.innerText = "All proxies unreachable, retrying...";
-    setTimeout(tryProxies, RETRY_DELAY);
-  }
-
-  tryProxies();
-})();
+  };
+  proxyListEl.appendChild(btn);
+});
 </script>
 </body>
 </html>
