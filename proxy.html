@@ -56,6 +56,18 @@
             proxyListEl.appendChild(btn);
         });
     </script>
+
+     <div id="ytWidget" style="position: absolute; top:5px; left:5px;"></div>
+    <script type="text/javascript">
+        (function () {
+            var widgetScript = document.createElement('script');
+            widgetScript.type = 'text/javascript';
+            widgetScript.async = true;
+            widgetScript.src = 'https://translate.yandex.net/website-widget/v1/widget.js?widgetId=ytWidget&pageLang=en&widgetTheme=dark&autoMode=false';
+            var firstScript = document.getElementsByTagName('script')[0];
+            firstScript.parentNode.insertBefore(widgetScript, firstScript);
+        })();
+    </script>
 </body>
 
 </html>
