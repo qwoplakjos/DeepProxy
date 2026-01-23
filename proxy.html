@@ -1,57 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Select Proxy</title>
-<script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Proxy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
-<div class="w-full max-w-md text-center">
-  <h1 class="text-3xl font-bold mb-6">Choose a proxy server</h1>
-  <div id="proxy-list" class="space-y-4">
-    <!-- Proxy buttons will be added here -->
-  </div>
-  <div id="status" class="mt-6 text-gray-400">Waiting for selection...</div>
-</div>
+    <div class="w-full max-w-md text-center">
+        <h1 class="text-3xl font-bold mb-6">Choose a proxy server</h1>
+        <div id="proxy-list" class="space-y-4">
+            <!-- Proxy buttons will be added here -->
+        </div>
+        <div id="status" class="mt-6 text-gray-400">Waiting for selection...</div>
+    </div>
 
-<script>
-const proxies = [
-  { name: "Main CF", url: "https://deepclicker.cc" },
-  { name: "Russian CDN", url: "https://4i7nii0g4i.a.trbcdn.net" },
-  { name: "Adaptive proxy", url: "https://2.deepclicker.cc" },
-  { name: "GCore CDN", url: "https://gcore.deepclicker.cc" },
-  { name: "Vercel ", url: "https://nextjs-boilerplate-ochre-delta-39.vercel.app" },
-];
+    <script>
+        const proxies = [
+            { name: "Main CF", url: "https://deepclicker.cc" },
+            { name: "Russian CDN", url: "https://4i7nii0g4i.a.trbcdn.net" },
+            { name: "Adaptive proxy", url: "https://2.deepclicker.cc" },
+            { name: "GCore CDN", url: "https://gcore.deepclicker.cc" },
+            { name: "Vercel ", url: "https://vercel.deepclicker.cc" },
+        ];
 
-const statusEl = document.getElementById("status");
-const proxyListEl = document.getElementById("proxy-list");
+        const statusEl = document.getElementById("status");
+        const proxyListEl = document.getElementById("proxy-list");
 
-const params = new URLSearchParams(window.location.search);
-let path = params.get("path") || "/";
-params.delete("path");
-const query = params.toString() ? `?${params.toString()}` : "";
+        const params = new URLSearchParams(window.location.search);
+        let path = params.get("path") || "/";
+        params.delete("path");
+        const query = params.toString() ? `?${params.toString()}` : "";
 
-// Create buttons for each proxy
-proxies.forEach(proxy => {
-  const btn = document.createElement("button");
-  btn.innerText = proxy.name;
-  btn.className = "w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors font-medium";
-  btn.onclick = async () => {
-    statusEl.innerText = "Connecting to " + proxy.name + "...";
+        // Create buttons for each proxy
+        proxies.forEach(proxy => {
+            const btn = document.createElement("button");
+            btn.innerText = proxy.name;
+            btn.className = "w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors font-medium";
+            btn.onclick = async () => {
+                statusEl.innerText = "Connecting to " + proxy.name + "...";
 
-    try {
-      const res = await fetch(proxy.url + "/test.txt", { cache: "no-store" });
-      if (!res.ok) throw new Error("Server unreachable");
-
-      statusEl.innerText = "Connected via " + proxy.name;
-      window.location.replace(proxy.url + path + query);
-    } catch (err) {
-      statusEl.innerText = "Failed to connect to " + proxy.name;
-    }
-  };
-  proxyListEl.appendChild(btn);
-});
-</script>
+                try {
+                    const res = await fetch(proxy.url + "/test.txt", { cache: "no-store" });
+                    if (!res.ok) throw new Error("Server unreachable");
+                    const text = await res.text();
+                    if (text.trim() !== "hello there") throw new Error("Invalid response");
+                    statusEl.innerText = "Connected via " + proxy.name;
+                    window.location.replace(proxy.url + path + query);
+                } catch (err) {
+                    statusEl.innerText = "Failed to connect to " + proxy.name;
+                }
+            };
+            proxyListEl.appendChild(btn);
+        });
+    </script>
 </body>
+
 </html>
