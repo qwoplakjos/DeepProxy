@@ -48,7 +48,7 @@
                     const text = await res.text();
                     if (text.trim() !== "hello there") throw new Error("Invalid response");
                     statusEl.innerText = "Connected via " + proxy.name;
-                    window.location.replace(proxy.url + path + query);
+                    window.location.href = proxy.url + path + query;
                 } catch (err) {
                     statusEl.innerText = "Failed to connect to " + proxy.name;
                 }
