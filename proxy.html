@@ -11,21 +11,19 @@
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-md text-center">
         <h1 class="text-3xl font-bold mb-6">Choose a proxy server</h1>
-        <div id="proxy-list" class="space-y-4">
-            <!-- Proxy buttons will be added here -->
-        </div>
+        <div id="proxy-list" class="space-y-4"></div>
         <div id="status" class="mt-6 text-gray-400">Waiting for selection...</div>
     </div>
 
     <script>
         const proxies = [
-            { name: "Main CF", url: "https://deepclicker.cc" },
-            { name: "Russia SWeb", url: "https://sweb.deepclicker.cc" },
-            { name: "Render Proxy", url: "https://render.deepclicker.cc" },
-            { name: "Adaptive proxy", url: "https://2.deepclicker.cc" },
-            { name: "Netlify", url: "https://netlify.deepclicker.cc" },
-            { name: "GCore CDN", url: "https://gcore.deepclicker.cc" },
-            { name: "Vercel ", url: "https://vercel.deepclicker.cc" },
+            { name: "Main CF", url: "https://deepclicker.cc", country: "eu" },
+            { name: "Russia SWeb", url: "https://sweb.deepclicker.cc", country: "ru" },
+            { name: "Render Proxy", url: "https://render.deepclicker.cc", country: "us" },
+            { name: "Adaptive proxy", url: "https://2.deepclicker.cc", country: "eu" },
+            { name: "Netlify", url: "https://netlify.deepclicker.cc", country: "de" },
+            { name: "GCore CDN", url: "https://gcore.deepclicker.cc", country: "eu" },
+            { name: "Vercel", url: "https://vercel.deepclicker.cc", country: "us" },
         ];
 
         const statusEl = document.getElementById("status");
@@ -36,38 +34,55 @@
         params.delete("path");
         const query = params.toString() ? `?${params.toString()}` : "";
 
-        // Create buttons for each proxy
         proxies.forEach(proxy => {
             const btn = document.createElement("button");
-            btn.innerText = proxy.name;
+
+            // Flag URL (SVG 24px height)
+            const flagUrl = proxy.country === "eu"
+                ? "https://flagcdn.com/w40/eu.png"
+                : `https://flagcdn.com/w40/${proxy.country}.png`;
+
+            btn.innerHTML = `
+                <span class="flex items-center justify-center gap-3">
+                    <img src="${flagUrl}" 
+                         alt="${proxy.country}" 
+                         class="w-6 h-4 object-cover rounded-sm shadow">
+                    <span>${proxy.name}</span>
+                </span>
+            `;
+
             btn.className = "w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors font-medium";
+
             btn.onclick = async () => {
                 statusEl.innerText = "Connecting to " + proxy.name + "...";
 
                 try {
                     const res = await fetch(proxy.url + "/test.txt", { cache: "no-store" });
                     if (!res.ok) throw new Error("Server unreachable");
+
                     const text = await res.text();
-                    if (text.trim() !== "hello there") throw new Error("Invalid response");
+                    if (text.trim() !== "hello there")
+                        throw new Error("Invalid response");
+
                     statusEl.innerText = "Connected via " + proxy.name;
                     window.location.href = proxy.url + path + query;
                 } catch (err) {
                     statusEl.innerText = "Failed to connect to " + proxy.name;
                 }
             };
+
             proxyListEl.appendChild(btn);
         });
     </script>
 
     <div id='ytWidget' style='position: absolute; top:5px; left:5px;'></div>
-    <script type='text/javascript'>
+    <script>
         (function () {
             var widgetScript = document.createElement('script');
-            widgetScript.type = 'text/javascript';
             widgetScript.async = true;
             widgetScript.src = 'https://translate.yandex.net/website-widget/v1/widget.js?widgetId=ytWidget&pageLang=en&widgetTheme=dark&autoMode=false';
-            var firstScript = document.getElementsByTagName('script')[0];
-            firstScript.parentNode.insertBefore(widgetScript, firstScript);
+            document.getElementsByTagName('script')[0]
+                .parentNode.insertBefore(widgetScript, null);
         })();
     </script>
 </body>
