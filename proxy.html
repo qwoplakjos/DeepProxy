@@ -104,12 +104,12 @@
                 : `https://flagcdn.com/w40/${proxy.country}.png`;
 
             btn.innerHTML = `
-                <span class="flex items-center justify-between w-full px-1">
+                <span class="relative flex items-center justify-center w-full py-0.5">
                     <span class="flex items-center gap-3">
                         <img src="${flagUrl}" alt="${proxy.country}" class="w-6 h-4 object-cover rounded-sm shadow">
                         <span>${proxy.name}</span>
                     </span>
-                    <span class="ping-indicator flex items-center gap-1.5">
+                    <span class="ping-indicator absolute right-0 flex items-center gap-1.5">
                         <span class="ping-badge font-mono text-gray-500">… ms</span>
                         <span class="ping-dot" style="background:#6b7280"></span>
                     </span>
