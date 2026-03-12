@@ -1,20 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Proxy</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .ping-badge {
+            font-size: 0.72rem;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.01em;
+            min-width: 52px;
+            text-align: right;
+        }
+        .ping-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .ping-pulse {
+            position: relative;
+        }
+        .ping-pulse::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            animation: pulse-ring 1.4s ease-out infinite;
+            background: inherit;
+        }
+    </style>
 </head>
-
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-md text-center">
         <h1 class="text-3xl font-bold mb-6">Choose a proxy server</h1>
         <div id="proxy-list" class="space-y-4"></div>
         <div id="status" class="mt-6 text-gray-400">Waiting for selection...</div>
     </div>
-
     <script>
         const proxies = [
             { name: "Main Cloudflare", url: "https://deepclicker.cc", country: "un" },
@@ -28,42 +55,75 @@
 
         const statusEl = document.getElementById("status");
         const proxyListEl = document.getElementById("proxy-list");
-
         const params = new URLSearchParams(window.location.search);
         let path = params.get("path") || "/";
         params.delete("path");
         const query = params.toString() ? `?${params.toString()}` : "";
 
+        // TLS/connection overhead adjustment (ms) — first-byte latency tends to be
+        // higher than a raw TCP ping due to TLS handshake; subtract ~30 ms as
+        // a rough correction so the displayed number feels closer to network RTT.
+        const TLS_OVERHEAD_MS = 30;
+
+        function pingColor(ms) {
+            if (ms === null) return { text: '#6b7280', dot: '#6b7280' }; // gray = unknown
+            if (ms < 80)  return { text: '#4ade80', dot: '#4ade80' };   // green
+            if (ms < 150) return { text: '#a3e635', dot: '#a3e635' };   // lime
+            if (ms < 250) return { text: '#facc15', dot: '#facc15' };   // yellow
+            if (ms < 400) return { text: '#fb923c', dot: '#fb923c' };   // orange
+            return           { text: '#f87171', dot: '#f87171' };        // red
+        }
+
+        async function measurePing(url) {
+            const t0 = performance.now();
+            try {
+                await fetch(url + "/test.txt", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+                const raw = Math.round(performance.now() - t0);
+                return Math.max(1, raw - TLS_OVERHEAD_MS);
+            } catch {
+                return null;
+            }
+        }
+
+        function renderPing(pingEl, ms) {
+            const colors = pingColor(ms);
+            const label = ms === null ? 'timeout' : ms + ' ms';
+            const isPulsing = ms !== null && ms < 250;
+            pingEl.innerHTML = `
+                <span class="flex items-center gap-1.5 justify-end">
+                    <span class="ping-badge font-mono" style="color:${colors.text}">${label}</span>
+                    <span class="ping-dot ${isPulsing ? 'ping-pulse' : ''}" style="background:${colors.dot}"></span>
+                </span>
+            `;
+        }
+
         proxies.forEach(proxy => {
             const btn = document.createElement("button");
-
-            // Flag URL (SVG 24px height)
             const flagUrl = proxy.country === "eu"
                 ? "https://flagcdn.com/w40/eu.png"
                 : `https://flagcdn.com/w40/${proxy.country}.png`;
 
             btn.innerHTML = `
-                <span class="flex items-center justify-center gap-3">
-                    <img src="${flagUrl}" 
-                         alt="${proxy.country}" 
-                         class="w-6 h-4 object-cover rounded-sm shadow">
-                    <span>${proxy.name}</span>
+                <span class="flex items-center justify-between w-full px-1">
+                    <span class="flex items-center gap-3">
+                        <img src="${flagUrl}" alt="${proxy.country}" class="w-6 h-4 object-cover rounded-sm shadow">
+                        <span>${proxy.name}</span>
+                    </span>
+                    <span class="ping-indicator flex items-center gap-1.5">
+                        <span class="ping-badge font-mono text-gray-500">… ms</span>
+                        <span class="ping-dot" style="background:#6b7280"></span>
+                    </span>
                 </span>
             `;
-
-            btn.className = "w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors font-medium";
+            btn.className = "w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors font-medium";
 
             btn.onclick = async () => {
                 statusEl.innerText = "Connecting to " + proxy.name + "...";
-
                 try {
                     const res = await fetch(proxy.url + "/test.txt", { cache: "no-store" });
                     if (!res.ok) throw new Error("Server unreachable");
-
                     const text = await res.text();
-                    if (text.trim() !== "hello there")
-                        throw new Error("Invalid response");
-
+                    if (text.trim() !== "hello there") throw new Error("Invalid response");
                     statusEl.innerText = "Connected via " + proxy.name;
                     window.location.href = proxy.url + path + query;
                 } catch (err) {
@@ -72,19 +132,20 @@
             };
 
             proxyListEl.appendChild(btn);
+
+            // Measure ping asynchronously after render
+            const pingEl = btn.querySelector('.ping-indicator');
+            measurePing(proxy.url).then(ms => renderPing(pingEl, ms));
         });
     </script>
-
     <div id='ytWidget' style='position: absolute; top:5px; left:5px;'></div>
     <script>
         (function () {
             var widgetScript = document.createElement('script');
             widgetScript.async = true;
             widgetScript.src = 'https://translate.yandex.net/website-widget/v1/widget.js?widgetId=ytWidget&pageLang=en&widgetTheme=dark&autoMode=false';
-            document.getElementsByTagName('script')[0]
-                .parentNode.insertBefore(widgetScript, null);
+            document.getElementsByTagName('script')[0].parentNode.insertBefore(widgetScript, null);
         })();
     </script>
 </body>
-
 </html>
