@@ -106,7 +106,7 @@
             if (samples.length === 0) return null;
             samples.sort((a, b) => a - b);
             const median = samples[Math.floor(samples.length / 2)];
-			if (Math.round(median) - 80 > 0) return Math.round(median) - 80;
+			if (Math.round(median) - 50 > 0) return Math.round(median) - 50;
             return Math.round(median);
         }
 
