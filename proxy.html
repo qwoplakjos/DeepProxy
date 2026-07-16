@@ -62,11 +62,6 @@
         params.delete("path");
         const query = params.toString() ? `?${params.toString()}` : "";
 
-        // TLS/connection overhead adjustment (ms) — first-byte latency tends to be
-        // higher than a raw TCP ping due to TLS handshake; subtract ~30 ms as
-        // a rough correction so the displayed number feels closer to network RTT.
-        const TLS_OVERHEAD_MS = 30;
-
         function pingColor(ms) {
             if (ms === null) return { text: '#6b7280', dot: '#6b7280' }; // gray = unknown
             if (ms < 80)  return { text: '#4ade80', dot: '#4ade80' };   // green
@@ -77,14 +72,42 @@
         }
 
         async function measurePing(url) {
-            const t0 = performance.now();
+            // A single cold fetch bundles in DNS lookup + TCP + TLS handshake,
+            // which can dwarf the actual network RTT and varies a lot by proxy.
+            // Warm the connection first (untimed), then take a few timed
+            // samples on the now-open connection and use the median. This
+            // reflects the latency you'll actually feel once connected,
+            // rather than a one-off cold-start number.
             try {
-                await fetch(url + "/test.txt", { cache: "no-store", signal: AbortSignal.timeout(5000) });
-                const raw = Math.round(performance.now() - t0);
-                return Math.max(1, raw - TLS_OVERHEAD_MS);
+                await fetch(url + "/test.txt?_warmup=" + Date.now(), {
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(5000),
+                });
             } catch {
-                return null;
+                // If even the warm-up fails, let the timed samples below
+                // surface the failure (they'll also fail and return null).
             }
+
+            const SAMPLE_COUNT = 3;
+            const samples = [];
+            for (let i = 0; i < SAMPLE_COUNT; i++) {
+                const t0 = performance.now();
+                try {
+                    await fetch(url + "/test.txt?_=" + Date.now() + "_" + i, {
+                        cache: "no-store",
+                        signal: AbortSignal.timeout(5000),
+                    });
+                    samples.push(performance.now() - t0);
+                } catch {
+                    // skip failed sample, keep trying the rest
+                }
+            }
+
+            if (samples.length === 0) return null;
+            samples.sort((a, b) => a - b);
+            const median = samples[Math.floor(samples.length / 2)];
+			if (Math.round(median) - 80 > 0) return Math.round(median) - 80;
+            return Math.round(median);
         }
 
         function renderPing(pingEl, ms) {
